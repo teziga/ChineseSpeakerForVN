@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能拍照识字与越南语助手 (本地直连旗舰版)</title>
+    <script src="https://unpkg.com/pinyin-pro@3.18.3/dist/index.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-top: 10px;
+        }
+        h1 { font-size: 24px; color: #1e293b; text-align: center; margin-bottom: 25px; }
+        
+        .media-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .btn-secondary {
+            flex: 1;
+            background-color: #475569;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-secondary:hover { background-color: #334155; }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #f8fafc;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #video-preview {
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 6px;
+            display: none;
+            background: #000;
+        }
+        .preview-img {
+            max-width: 100%;
+            max-height: 220px;
+            border-radius: 6px;
+            display: none;
+        }
+        #file-input { display: none; }
+        
+        .btn-primary {
+            width: 100%;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .btn-primary:hover { background-color: #2563eb; }
+        .btn-primary:disabled { background-color: #cbd5e1; }
+
+        .status { text-align: center; color: #64748b; font-size: 14px; margin: 12px 0; }
+
+        /* 看板外壳 */
+        .board-container {
+            position: relative;
+            width: 100%;
+            min-height: 180px;
+            margin-top: 5px;
+        }
+        .display-label { font-weight: 600; color: #334155; display: block; margin-bottom: 8px; }
+        
+        /* 中文+拼音看板 */
+        .karaoke-board {
+            width: 100%;
+            min-height: 180px;
+            padding: 20px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            background-color: #fafbfc;
+            font-size: 24px;
+            line-height: 2.8;
+            word-break: break-all;
+        }
+
+        /* 越南语翻译看板（平时隐藏） */
+        .translation-board {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            border: 1px solid #3b82f6;
+            border-radius: 12px;
+            background-color: #eff6ff;
+            color: #1e3a8a;
+            font-size: 20px;
+            line-height: 1.6;
+            word-break: break-all;
+            display: none;
+            overflow-y: auto;
+        }
+
+        /* Ruby 拼音样式 */
+        ruby {
+            ruby-position: over;
+            margin: 0 4px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: bottom;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        rt {
+            font-size: 13px;
+            color: #6b21a8;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            line-height: 1.2;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        /* 卡拉OK 高亮和小红点 */
+        ruby.reading-now {
+            background-color: #fef08a;
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(234, 179, 8, 0.2);
+        }
+        ruby.reading-now::after {
+            content: "";
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            animation: bounce 0.3s infinite alternate;
+        }
+        @keyframes bounce { from { bottom: -6px; } to { bottom: -10px; } }
+
+        /* 底部控制中心 */
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+            width: 100%;
+        }
+        .btn-speak {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+        }
+        .btn-speak:hover { background-color: #059669; }
+        .btn-speak:disabled { background-color: #cbd5e1; box-shadow: none; }
+
+        .btn-translate {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .btn-translate:active { background-color: #1d4ed8; }
+        .btn-translate:disabled { background-color: #cbd5e1; box-shadow: none; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📸 AI 拍照识字与越南语助手 (直连极速版)</h1>
+        
+        <div class="media-controls">
+            <button class="btn-secondary" onclick="document.getElementById('file-input').click()">📂 本地上传图片</button>
+            <button class="btn-secondary" id="camera-toggle-btn">📷 打开摄像头</button>
+            <button class="btn-secondary" id="capture-btn" style="display: none; background-color: #ef4444;">📸 拍照</button>
+        </div>
+
+        <div class="upload-area" id="drop-zone">
+            <span id="upload-prompt">选择上方按钮导入图片或开启相机</span>
+            <input type="file" id="file-input" accept="image/*">
+            <video id="video-preview" autoplay playsinline></video>
+            <img id="image-preview" class="preview-img" alt="图片预览">
+        </div>
+
+        <button id="ocr-btn" class="btn-primary" disabled>🔍 仅识别文字</button>
+        <div id="status-text" class="status">等待输入图片...</div>
+
+        <span class="display-label" id="board-label">📝 拼音汉字对照看板：</span>
+        <div class="board-container">
+            <div id="karaoke-board" class="karaoke-board">
+                <span style="color: #94a3b8; font-size: 16px;">等待大模型提取文字...</span>
+            </div>
+            <div id="translation-board" class="translation-board"></div>
+        </div>
+
+        <div class="controls-row">
+            <button id="speak-btn" class="btn-speak" disabled>🔊 卡拉OK朗读</button>
+            <button id="translate-btn" class="btn-translate" disabled>🇻🇳 按住看越南语</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const cameraToggleBtn = document.getElementById('camera-toggle-btn');
+        const captureBtn = document.getElementById('capture-btn');
+        const videoPreview = document.getElementById('video-preview');
+        const imagePreview = document.getElementById('image-preview');
+        const uploadPrompt = document.getElementById('upload-prompt');
+        const ocrBtn = document.getElementById('ocr-btn');
+        const speakBtn = document.getElementById('speak-btn');
+        const translateBtn = document.getElementById('translate-btn');
+        const statusText = document.getElementById('status-text');
+        const karaokeBoard = document.getElementById('karaoke-board');
+        const translationBoard = document.getElementById('translation-board');
+        const boardLabel = document.getElementById('board-label');
+
+        let imageBlob = null;
+        let stream = null;
+        let rawPureText = ""; 
+        let textMapping = []; 
+
+        // 🎯 1. 在这里直接填入你的免费 Gemini API Key 
+        // （因为完全在本地跑，不再经过云端中转，可以完美绕开云端口响应错误）
+        const GEMINI_API_KEY = "AIzaSyDAeh2C_Y3kNeBFBQamAgd9amKRhCdDiFE";
+
+        fileInput.addEventListener('change', (e) => {
+            stopCamera();
+            const file = e.target.files[0];
+            if (file) {
+                imageBlob = file;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.src = event.target.result;
+                    imagePreview.style.display = 'block';
+                    uploadPrompt.style.display = 'none';
+                    videoPreview.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+                ocrBtn.disabled = false;
+                statusText.innerText = `已加载本地图片: ${file.name}`;
+                resetAll();
+            }
+        });
+
+        cameraToggleBtn.addEventListener('click', async () => {
+            if (stream) { return stopCamera(); }
+            try {
+                imagePreview.style.display = 'none';
+                uploadPrompt.style.display = 'none';
+                videoPreview.style.display = 'block';
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+                videoPreview.srcObject = stream;
+                cameraToggleBtn.innerText = '🛑 关闭摄像头';
+                captureBtn.style.display = 'block';
+                statusText.innerText = '相机就绪，点击拍照按钮。';
+            } catch (err) {
+                alert("摄像头启动失败");
+                stopCamera();
+            }
+        });
+
+        captureBtn.addEventListener('click', () => {
+            if (!stream) return;
+            const canvas = document.createElement('canvas');
+            canvas.width = videoPreview.videoWidth;
+            canvas.height = videoPreview.videoHeight;
+            canvas.getContext('2d').drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
+            
+            canvas.toBlob((blob) => {
+                imageBlob = blob;
+                imagePreview.src = canvas.toDataURL('image/jpeg');
+                imagePreview.style.display = 'block';
+                videoPreview.style.display = 'none';
+                stopCamera();
+                ocrBtn.disabled = false;
+                statusText.innerText = '📷 拍照成功！';
+                resetAll();
+            }, 'image/jpeg');
+        });
+
+        function stopCamera() {
+            if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+            videoPreview.srcObject = null;
+            videoPreview.style.display = 'none';
+            captureBtn.style.display = 'none';
+            cameraToggleBtn.innerText = '📷 打开摄像头';
+            if(!imageBlob) uploadPrompt.style.display = 'block';
+        }
+
+        function resetAll() {
+            karaokeBoard.innerHTML = '<span style="color: #94a3b8; font-size: 16px;">等待大模型提取文字...</span>';
+            translationBoard.innerHTML = "";
+            translationBoard.style.display = "none";
+            karaokeBoard.style.display = "block";
+            boardLabel.innerText = "📝 拼音汉字对照看板：";
+            speakBtn.disabled = true;
+            translateBtn.disabled = true;
+            rawPureText = "";
+            textMapping = [];
+            window.speechSynthesis.cancel();
+        }
+
+        function generateRubyMarkup(text) {
+            karaokeBoard.innerHTML = ""; 
+            rawPureText = "";
+            textMapping = [];
+
+            const pinyinList = pinyinPro.pinyin(text, { type: 'array', toneType: 'symbol' });
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const pinyin = pinyinList[i] || "";
+
+                if (/[\u4e00-\u9fa5]/.test(char)) {
+                    const rubyNode = document.createElement('ruby');
+                    rubyNode.innerHTML = `${char}<rt>${pinyin}</rt>`;
+                    karaokeBoard.appendChild(rubyNode);
+                    rawPureText += char;
+                    textMapping.push(rubyNode);
+                } else {
+                    const spanNode = document.createElement('span');
+                    spanNode.innerText = char;
+                    karaokeBoard.appendChild(spanNode);
+                    if (char.trim() !== "") {
+                        rawPureText += char; 
+                        textMapping.push(spanNode); 
+                    }
+                }
+            }
+        }
+
+        // 🎯 核心改变：直接从浏览器本地网络直连 Gemini 官方端点
+        ocrBtn.addEventListener('click', async () => {
+            if (!imageBlob) return;
+            try {
+                ocrBtn.disabled = true;
+                ocrBtn.innerText = '⚡ 正在直连抠字中...';
+                statusText.innerText = '正越过云端，直接向谷歌 Gemini 核心请求识字与翻译...';
+                resetAll();
+
+                // 把图片转为 Base64
+                const reader = new FileReader();
+                const base64Promise = new Promise((resolve) => {
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                });
+                reader.readAsDataURL(imageBlob);
+                const base64Image = await base64Promise;
+
+                const prompt = `你是一个多模态 OCR 兼翻译专家。请帮我提取这张图片中的所有中文文字，并将其翻译成越南语。
+你必须严格、只能返回如下格式的标准 JSON 字符串，不要包含任何 \`\`\` 标记，不要有解释：
+{
+  "text": "提取出的中文纯文本内容",
+  "translation": "对应的越南语翻译内容"
+}`;
+
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+                const response = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                          parts: [
+                            { text: prompt },
+                            { inlineData: { mimeType: "image/jpeg", data: base64Image } }
+                          ]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`谷歌拒绝了请求: ${errText}`);
+                }
+
+                const resData = await response.json();
+                let replyText = resData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
+                
+                // 清洗 Markdown 格式防爆
+                replyText = replyText.replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/```$/, "").trim();
+                
+                const finalResult = JSON.parse(replyText);
+
+                if (finalResult.text) {
+                    generateRubyMarkup(finalResult.text);
+                    translationBoard.innerText = finalResult.translation || "暂无翻译数据";
+
+                    statusText.innerText = '🎉 直连交互打通！按住蓝色按钮查阅越南语，点击绿色卡拉OK跟读。';
+                    speakBtn.disabled = false;
+                    translateBtn.disabled = false;
+                } else {
+                    throw new Error('未能提取到任何有效汉字');
+                }
+            } catch (error) {
+                console.error('前端捕获异常:', error);
+                statusText.innerText = '❌ 直连请求失败';
+                alert('识字失败: ' + error.message + ' \n\n提示：请确认您代码第 141 行的 GEMINI_API_KEY 是否填写正确。');
+            } finally {
+                ocrBtn.disabled = false;
+                ocrBtn.innerText = '🔍 仅识别文字';
+            }
+        });
+
+        // 卡拉OK 朗读逻辑
+        speakBtn.addEventListener('click', () => {
+            if (!rawPureText) return;
+            window.speechSynthesis.cancel(); 
+
+            const utterance = new SpeechSynthesisUtterance(rawPureText);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.85; 
+
+            utterance.onboundary = (event) => {
+                const currentIndex = event.charIndex;
+                textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
+
+                const currentNode = textMapping[currentIndex];
+                if (currentNode && currentNode.classList) {
+                    currentNode.classList.add('reading-now');
+                    currentNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            };
+
+            utterance.onend = () => {
+                textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
+                statusText.innerText = '🎵 朗读完毕！';
+            };
+
+            window.speechSynthesis.speak(utterance);
+            statusText.innerText = '🎤 卡拉OK跟读中...';
+        });
+
+        // 按住切换翻译，松开切回中文
+        function showTranslation() {
+            karaokeBoard.style.display = "none";     
+            translationBoard.style.display = "block"; 
+            boardLabel.innerText = "🇻🇳 越南语译文 Peek (松开切回中文)：";
+        }
+
+        function hideTranslation() {
+            translationBoard.style.display = "none";  
+            karaokeBoard.style.display = "block";    
+            boardLabel.innerText = "📝 拼音汉字对照看板：";
+        }
+
+        translateBtn.addEventListener('mousedown', showTranslation);
+        translateBtn.addEventListener('mouseup', hideTranslation);
+        translateBtn.addEventListener('mouseleave', hideTranslation); 
+
+        translateBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault(); 
+            showTranslation();
+        });
+        translateBtn.addEventListener('touchend', hideTranslation);
+    </script>
+</body>
+</html>
