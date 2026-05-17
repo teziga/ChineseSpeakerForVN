@@ -2,468 +2,471 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 智能拍照识字与越南语助手 (安全代理生产版)</title>
-    <script src="https://registry.npmmirror.com/pinyin-pro/3.18.3/files/dist/index.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>拍照识字 & 实时翻译</title>
     <style>
-        * { box-sizing: border-box; }
+        :root {
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f4f8;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
         }
+
         .container {
-            max-width: 700px;
-            width: 100%;
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin-top: 10px;
-        }
-        h1 { font-size: 24px; color: #1e293b; text-align: center; margin-bottom: 25px; }
-        
-        .media-controls {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-        .btn-secondary {
-            flex: 1;
-            background-color: #475569;
-            color: white;
-            border: none;
-            padding: 10px;
-            font-size: 14px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .btn-secondary:hover { background-color: #334155; }
-
-        .upload-area {
-            border: 2px dashed #cbd5e1;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            background-color: #f8fafc;
-            min-height: 180px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            gap: 16px;
         }
-        #video-preview {
-            width: 100%;
-            max-height: 220px;
-            object-fit: cover;
-            border-radius: 6px;
-            display: none;
-            background: #000;
-        }
-        .preview-img {
-            max-width: 100%;
-            max-height: 220px;
-            border-radius: 6px;
-            display: none;
-        }
-        #file-input { display: none; }
-        
-        .btn-primary {
-            width: 100%;
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        .btn-primary:hover { background-color: #2563eb; }
-        .btn-primary:disabled { background-color: #cbd5e1; }
 
-        .status { text-align: center; color: #64748b; font-size: 14px; margin: 12px 0; }
+        h1 {
+            font-size: 20px;
+            text-align: center;
+            margin: 8px 0;
+            color: var(--text-main);
+        }
 
-        .board-container {
+        .camera-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             position: relative;
-            width: 100%;
-            min-height: 180px;
-            margin-top: 5px;
-        }
-        .display-label { font-weight: 600; color: #334155; display: block; margin-bottom: 8px; }
-        
-        .karaoke-board {
-            width: 100%;
-            min-height: 180px;
-            padding: 20px;
-            border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            background-color: #fafbfc;
-            font-size: 24px;
-            line-height: 2.8;
-            word-break: break-all;
+            aspect-ratio: 4 / 3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed #cbd5e1;
         }
 
-        .translation-board {
-            position: absolute;
-            top: 0;
-            left: 0;
+        #video, #photo {
             width: 100%;
             height: 100%;
-            padding: 20px;
-            border: 1px solid #3b82f6;
-            border-radius: 12px;
-            background-color: #eff6ff;
-            color: #1e3a8a;
-            font-size: 20px;
-            line-height: 1.6;
-            word-break: break-all;
+            object-fit: cover;
             display: none;
-            overflow-y: auto;
         }
 
-        ruby {
-            ruby-position: over;
-            margin: 0 4px;
-            padding: 4px 6px;
-            border-radius: 6px;
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            vertical-align: bottom;
-            position: relative;
-            transition: all 0.2s ease;
+        .placeholder-text {
+            color: var(--text-muted);
+            font-size: 14px;
+            text-align: center;
+            padding: 20px;
         }
-        rt {
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        }
+
+        button:active {
+            background-color: var(--primary-hover);
+            transform: scale(0.98);
+        }
+
+        button.secondary {
+            background-color: #64748b;
+            box-shadow: 0 2px 4px rgba(100, 116, 139, 0.2);
+        }
+        button.secondary:active {
+            background-color: #475569;
+        }
+
+        #action-btn {
+            grid-column: span 2;
+            background-color: #10b981;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+        #action-btn:active {
+            background-color: #059669;
+        }
+        #action-btn:disabled {
+            background-color: #cbd5e1;
+            color: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+
+        .section-title {
             font-size: 13px;
-            color: #6b21a8;
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: bold;
-            line-height: 1.2;
-            margin-bottom: 2px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 8px;
             letter-spacing: 0.5px;
         }
 
-        ruby.reading-now {
-            background-color: #fef08a;
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(234, 179, 8, 0.2);
-        }
-        ruby.reading-now::after {
-            content: "";
-            position: absolute;
-            bottom: -6px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 8px;
-            height: 8px;
-            background-color: #ef4444;
-            border-radius: 50%;
-            animation: bounce 0.3s infinite alternate;
-        }
-        @keyframes bounce { from { bottom: -6px; } to { bottom: -10px; } }
-
-        .controls-row {
+        /* 卡拉OK 看板核心样式 */
+        .pinyin-board {
             display: flex;
-            gap: 15px;
-            margin-top: 20px;
-            justify-content: center;
-            width: 100%;
+            flex-wrap: wrap;
+            gap: 12px 16px;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
         }
-        .btn-speak {
-            background-color: #10b981;
-            color: white;
-            border: none;
-            padding: 12px 35px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
-        }
-        .btn-speak:hover { background-color: #059669; }
-        .btn-speak:disabled { background-color: #cbd5e1; box-shadow: none; }
 
-        .btn-translate {
-            background-color: #3b82f6;
-            color: white;
-            border: none;
-            padding: 12px 35px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 30px;
+        .word-group {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+        }
+
+        .pinyin {
+            font-size: 12px;
+            color: #ef4444;
+            font-weight: 500;
+            height: 18px;
+        }
+
+        .hanzi {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        /* 释义大字区样式 */
+        .translation-box {
+            font-size: 20px;
+            font-weight: 600;
+            color: #0f172a;
+            padding: 14px;
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            border-radius: 0 8px 8px 0;
+            min-height: 50px;
+        }
+
+        .peek-btn {
+            grid-column: span 2;
+            background-color: #3b82f6;
             user-select: none;
             -webkit-user-select: none;
         }
-        .btn-translate:active { background-color: #1d4ed8; }
-        .btn-translate:disabled { background-color: #cbd5e1; box-shadow: none; cursor: not-allowed; }
+
+        #canvas {
+            display: none;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
+    <script src="https://unpkg.com/pinyin-pro@3.18.3/dist/index.prod.js"></script>
 </head>
 <body>
 
     <div class="container">
-        <h1>📸 AI 拍照识字与越南语助手 (安全代理生产版)</h1>
-        
-        <div class="media-controls">
-            <button class="btn-secondary" onclick="document.getElementById('file-input').click()">📂 本地上传图片</button>
-            <button class="btn-secondary" id="camera-toggle-btn">📷 打开摄像头</button>
-            <button class="btn-secondary" id="capture-btn" style="display: none; background-color: #ef4444;">📸 拍照</button>
+        <h1>📸 智能拍照识字工具</h1>
+
+        <div class="camera-section" id="camera-container">
+            <div class="placeholder-text" id="placeholder">点击“打开摄像头”或“传本地图”开始</div>
+            <video id="video" autoplay playsinline></video>
+            <img id="photo" alt="拍摄快照">
+            <canvas id="canvas"></canvas>
         </div>
 
-        <div class="upload-area" id="drop-zone">
-            <span id="upload-prompt">选择上方按钮导入图片或开启相机</span>
-            <input type="file" id="file-input" accept="image/*">
-            <video id="video-preview" autoplay playsinline></video>
-            <img id="image-preview" class="preview-img" alt="图片预览">
+        <div class="btn-group">
+            <button class="secondary" id="open-cam-btn">📷 打开摄像头</button>
+            <button class="secondary" id="file-btn">🖼️ 传本地图</button>
+            <input type="file" id="file-input" accept="image/*" style="display: none;">
+            
+            <button id="action-btn" disabled>
+                <div class="loading-spinner" id="spinner"></div>
+                <span id="btn-text">🔍 仅识别文字</span>
+            </button>
         </div>
 
-        <button id="ocr-btn" class="btn-primary" disabled>🔍 仅识别文字</button>
-        <div id="status-text" class="status">等待输入图片...</div>
+        <div class="result-section" id="result-panel">
+            <div class="section-title">拼音看板 (点击单字可朗读)</div>
+            <div class="pinyin-board" id="pinyin-board-container"></div>
 
-        <span class="display-label" id="board-label">📝 拼音汉字对照看板：</span>
-        <div class="board-container">
-            <div id="karaoke-board" class="karaoke-board">
-                <span style="color: #94a3b8; font-size: 16px;">等待大模型提取文字...</span>
+            <div class="section-title">越南语翻译 (Translation)</div>
+            <div class="translation-box" id="translation-result"></div>
+
+            <div class="btn-group" style="margin-top: 16px;">
+                <button class="peek-btn" id="peek-btn">👆 按住看翻译 (Peek)</button>
             </div>
-            <div id="translation-board" class="translation-board"></div>
-        </div>
-
-        <div class="controls-row">
-            <button id="speak-btn" class="btn-speak" disabled>🔊 卡拉OK朗读</button>
-            <button id="translate-btn" class="btn-translate" disabled>🇻🇳 按住看越南语</button>
         </div>
     </div>
 
     <script>
+        // 🎯 完美对齐的 Supabase 生产公网网关地址
+        const backendUrl = `https://nqzqnrpdwpoxexavqgvo.supabase.co/functions/v1/process-image`;
+        
+        // 🔒 写入你提供的安全公用 Anon 护照密钥
+        const supabaseAnonKey = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xenFucnBkd3BveGV4YXZxZ3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4ODk0NDcsImV4cCI6MjA5NDQ2NTQ0N30.WekEdgX2T0Ea8SA1ot07XN5nSDumtlylHiRyf6GGwE0`;
+
+        const video = document.getElementById('video');
+        const photo = document.getElementById('photo');
+        const canvas = document.getElementById('canvas');
+        const placeholder = document.getElementById('placeholder');
+        const openCamBtn = document.getElementById('open-cam-btn');
+        const fileBtn = document.getElementById('file-btn');
         const fileInput = document.getElementById('file-input');
-        const cameraToggleBtn = document.getElementById('camera-toggle-btn');
-        const captureBtn = document.getElementById('capture-btn');
-        const videoPreview = document.getElementById('video-preview');
-        const imagePreview = document.getElementById('image-preview');
-        const uploadPrompt = document.getElementById('upload-prompt');
-        const ocrBtn = document.getElementById('ocr-btn');
-        const speakBtn = document.getElementById('speak-btn');
-        const translateBtn = document.getElementById('translate-btn');
-        const statusText = document.getElementById('status-text');
-        const karaokeBoard = document.getElementById('karaoke-board');
-        const translationBoard = document.getElementById('translation-board');
-        const boardLabel = document.getElementById('board-label');
+        const actionBtn = document.getElementById('action-btn');
+        const spinner = document.getElementById('spinner');
+        const btnText = document.getElementById('btn-text');
+        const resultPanel = document.getElementById('result-panel');
+        const pinyinBoardContainer = document.getElementById('pinyin-board-container');
+        const translationResult = document.getElementById('translation-result');
+        const peekBtn = document.getElementById('peek-btn');
 
-        let imageBlob = null;
         let stream = null;
-        let rawPureText = ""; 
-        let textMapping = []; 
+        let base64Data = null;
+        let globalTranslation = ""; 
 
-        fileInput.addEventListener('change', (e) => {
-            stopCamera();
-            const file = e.target.files[0];
-            if (file) {
-                imageBlob = file;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    imagePreview.src = event.target.result;
-                    imagePreview.style.display = 'block';
-                    uploadPrompt.style.display = 'none';
-                    videoPreview.style.display = 'none';
-                };
-                reader.readAsDataURL(file);
-                ocrBtn.disabled = false;
-                statusText.innerText = `已加载本地图片: ${file.name}`;
-                resetAll();
-            }
-        });
-
-        cameraToggleBtn.addEventListener('click', async () => {
-            if (stream) { return stopCamera(); }
+        // 1. 唤醒摄像头
+        openCamBtn.addEventListener('click', async () => {
             try {
-                imagePreview.style.display = 'none';
-                uploadPrompt.style.display = 'none';
-                videoPreview.style.display = 'block';
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-                videoPreview.srcObject = stream;
-                cameraToggleBtn.innerText = '🛑 关闭摄像头';
-                captureBtn.style.display = 'block';
-                statusText.innerText = '相机就绪，点击拍照按钮。';
-            } catch (err) {
-                alert("摄像头启动失败");
-                stopCamera();
-            }
-        });
-
-        captureBtn.addEventListener('click', () => {
-            if (!stream) return;
-            const canvas = document.createElement('canvas');
-            canvas.width = videoPreview.videoWidth;
-            canvas.height = videoPreview.videoHeight;
-            canvas.getContext('2d').drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
-            
-            canvas.toBlob((blob) => {
-                imageBlob = blob;
-                imagePreview.src = canvas.toDataURL('image/jpeg');
-                imagePreview.style.display = 'block';
-                videoPreview.style.display = 'none';
-                stopCamera();
-                ocrBtn.disabled = false;
-                statusText.innerText = '📷 拍照成功！';
-                resetAll();
-            }, 'image/jpeg');
-        });
-
-        function stopCamera() {
-            if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
-            videoPreview.srcObject = null;
-            videoPreview.style.display = 'none';
-            captureBtn.style.display = 'none';
-            cameraToggleBtn.innerText = '📷 打开摄像头';
-            if(!imageBlob) uploadPrompt.style.display = 'block';
-        }
-
-        function resetAll() {
-            karaokeBoard.innerHTML = '<span style="color: #94a3b8; font-size: 16px;">等待大模型提取文字...</span>';
-            translationBoard.innerHTML = "";
-            translationBoard.style.display = "none";
-            karaokeBoard.style.display = "block";
-            boardLabel.innerText = "📝 拼音汉字对照看板：";
-            speakBtn.disabled = true;
-            translateBtn.disabled = true;
-            rawPureText = "";
-            textMapping = [];
-            window.speechSynthesis.cancel();
-        }
-
-        function generateRubyMarkup(text) {
-            karaokeBoard.innerHTML = ""; 
-            rawPureText = "";
-            textMapping = [];
-
-            const pinyinList = pinyinPro.pinyin(text, { type: 'array', toneType: 'symbol' });
-            
-            for (let i = 0; i < text.length; i++) {
-                const char = text[i];
-                const pinyin = pinyinList[i] || "";
-
-                if (/[\u4e00-\u9fa5]/.test(char)) {
-                    const rubyNode = document.createElement('ruby');
-                    rubyNode.innerHTML = `${char}<rt>${pinyin}</rt>`;
-                    karaokeBoard.appendChild(rubyNode);
-                    rawPureText += char;
-                    textMapping.push(rubyNode);
-                } else {
-                    const spanNode = document.createElement('span');
-                    spanNode.innerText = char;
-                    karaokeBoard.appendChild(spanNode);
-                    if (char.trim() !== "") {
-                        rawPureText += char; 
-                        textMapping.push(spanNode); 
-                    }
+                if(stream) {
+                    stream.getTracks().forEach(track => track.stop());
                 }
+                photo.style.display = 'none';
+                placeholder.style.display = 'none';
+                video.style.display = 'block';
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' },
+                    audio: false
+                });
+                video.srcObject = stream;
+                actionBtn.disabled = false;
+                openCamBtn.textContent = "🔄 重新拍照";
+            } catch (err) {
+                alert('摄像头开启失败，请检查权限或尝试使用“传本地图”功能');
+                console.error(err);
             }
-        }
+        });
 
-        // 🎯 发送图片至 Deno 后端
-        ocrBtn.addEventListener('click', async () => {
-            if (!imageBlob) return;
+        // 2. 传本地图逻辑
+        fileBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if(stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                video.style.display = 'none';
+                placeholder.style.display = 'none';
+                photo.style.display = 'block';
+                photo.src = event.target.result;
+                
+                base64Data = event.target.result.replace(/^data:image\/\w+;base64,/, "");
+                actionBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 3. 核心请求逻辑：向大模型发起总攻
+        actionBtn.addEventListener('click', async () => {
+            // 如果是在视频流状态下，先定格画面切成图片
+            if (stream && video.style.display !== 'none') {
+                const ctx = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                video.style.display = 'none';
+                photo.style.display = 'block';
+                photo.src = dataUrl;
+                
+                base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+
+            if (!base64Data) {
+                alert("请先拍照或选择图片");
+                return;
+            }
+
+            // 开启 Loading 动画
+            actionBtn.disabled = true;
+            spinner.style.display = 'block';
+            btnText.textContent = '正在识别并翻译...';
+            resultPanel.style.display = 'none';
+
             try {
-                ocrBtn.disabled = true;
-                ocrBtn.innerText = '⚡ 正在发送给云端...';
-                statusText.innerText = '正在通过 Deno 安全后端代理，向谷歌大模型请求识字与翻译...';
-                resetAll();
-
-                // 🎯 替换为你的 Deno 后端真实云端路由（本地测试可用 http://localhost:8000）
-                const backendUrl = `https://nqzqnrpdwpoxexavqgvo.supabase.co`; 
-
-                // 🎯 核心改变：直接把二进制的 imageBlob 塞入 body 发送，匹配后端的 req.arrayBuffer()
+                // 向新加坡 Supabase 节点发送 POST 并塞入公共护照
                 const response = await fetch(backendUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/octet-stream' },
-                    body: imageBlob 
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "apikey": supabaseAnonKey,
+                        "Authorization": `Bearer ${supabaseAnonKey}`
+                    },
+                    body: JSON.stringify({ image: base64Data })
                 });
 
                 if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error || `服务器请求失败: ${response.status}`);
+                    const errDetail = await response.text();
+                    throw new Error(errDetail || `HTTP 错误 ${response.status}`);
                 }
 
-                const finalResult = await response.json();
-
-                if (finalResult.text) {
-                    generateRubyMarkup(finalResult.text);
-                    translationBoard.innerText = finalResult.translation || "暂无翻译数据";
-
-                    statusText.innerText = '🎉 识别成功！按住蓝色按钮查阅越南语，点击绿色卡拉OK跟读。';
-                    speakBtn.disabled = false;
-                    translateBtn.disabled = false;
-                } else {
-                    throw new Error('未能提取到任何有效汉字');
+                const result = await response.json();
+                
+                if(result.error) {
+                    throw new Error(result.error);
                 }
-            } catch (error) {
-                console.error('前端捕获异常:', error);
-                statusText.innerText = '❌ 请求失败';
-                alert('识字失败: ' + error.message);
+
+                // 渲染最终结果
+                renderPinyinBoard(result.text);
+                globalTranslation = result.translation || "无对应翻译";
+                translationResult.textContent = "*** (已隐藏，请按住下方 Peek 按钮查看)";
+                
+                resultPanel.style.display = 'block';
+                resultPanel.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (err) {
+                alert("识字失败: " + err.message);
+                console.error(err);
             } finally {
-                ocrBtn.disabled = false;
-                ocrBtn.innerText = '🔍 仅识别文字';
+                actionBtn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = '🔍 仅识别文字';
             }
         });
 
-        speakBtn.addEventListener('click', () => {
-            if (!rawPureText) return;
-            window.speechSynthesis.cancel(); 
+        // 4. 卡拉OK 看板渲染引擎
+        function renderPinyinBoard(text) {
+            pinyinBoardContainer.innerHTML = "";
+            if(!text) return;
 
-            const utterance = new SpeechSynthesisUtterance(rawPureText);
-            utterance.lang = 'zh-CN';
-            utterance.rate = 0.85; 
+            // 过滤掉中英文常见标点，仅对汉字生成拼音
+            const cleanText = text.replace(/[\s,.:;!?，。：；！？、]/g, "");
 
-            utterance.onboundary = (event) => {
-                const currentIndex = event.charIndex;
-                textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
+            for (let char of cleanText) {
+                const group = document.createElement('div');
+                group.className = 'word-group';
 
-                const currentNode = textMapping[currentIndex];
-                if (currentNode && currentNode.classList) {
-                    currentNode.classList.add('reading-now');
-                    currentNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            };
+                const pinyinText = pinyinPro.pinyin(char, { toneType: 'symbol' });
 
-            utterance.onend = () => {
-                textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
-                statusText.innerText = '🎵 朗读完毕！';
-            };
+                const pinyinDiv = document.createElement('div');
+                pinyinDiv.className = 'pinyin';
+                pinyinDiv.textContent = pinyinText;
 
-            window.speechSynthesis.speak(utterance);
-            statusText.innerText = '🎤 卡拉OK跟读中...';
-        });
+                const hanziDiv = document.createElement('div');
+                hanziDiv.className = 'hanzi';
+                hanziDiv.textContent = char;
 
+                group.appendChild(pinyinDiv);
+                group.appendChild(hanziDiv);
+
+                // 点击单字发音
+                group.addEventListener('click', () => {
+                    speakChinese(char);
+                });
+
+                pinyinBoardContainer.appendChild(group);
+            }
+        }
+
+        // 5. 语音发音逻辑 (Web Speech API)
+        function speakChinese(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // 强行切断上一声，做到即点即发音
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.8; // 降低语速，方便精细听读音
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // 6. 核心交互：Peek 按住看翻译逻辑 (完美适配手机触摸端与电脑鼠标)
         function showTranslation() {
-            karaokeBoard.style.display = "none";     
-            translationBoard.style.display = "block"; 
-            boardLabel.innerText = "🇻🇳 越南语译文 Peek (松开切回中文)：";
+            translationResult.textContent = globalTranslation;
+            translationResult.style.background = "#e8f5e9";
         }
 
         function hideTranslation() {
-            translationBoard.style.display = "none";  
-            karaokeBoard.style.display = "block";    
-            boardLabel.innerText = "📝 拼音汉字对照看板：";
+            translationResult.textContent = "*** (已隐藏，请按住下方 Peek 按钮查看)";
+            translationResult.style.background = "#f0fdf4";
         }
 
-        translateBtn.addEventListener('mousedown', showTranslation);
-        translateBtn.addEventListener('mouseup', hideTranslation);
-        translateBtn.addEventListener('mouseleave', hideTranslation); 
-
-        translateBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); 
+        // 手机触摸事件
+        peekBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
             showTranslation();
         });
-        translateBtn.addEventListener('touchend', hideTranslation);
+        peekBtn.addEventListener('touchend', () => {
+            hideTranslation();
+        });
+
+        // 电脑鼠标事件
+        peekBtn.addEventListener('mousedown', () => {
+            showTranslation();
+        });
+        peekBtn.addEventListener('mouseup', () => {
+            hideTranslation();
+        });
+        peekBtn.addEventListener('mouseleave', () => {
+            hideTranslation();
+        });
+
     </script>
 </body>
 </html>
