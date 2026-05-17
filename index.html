@@ -379,7 +379,7 @@
                 resetAll();
 
                 // 🎯 替换为你的 Deno 后端真实云端路由（本地测试可用 http://localhost:8000）
-                const backendUrl = `http://localhost:8000`; 
+                const backendUrl = `https://nqzqnrpdwpoxexavqgvo.supabase.co`; 
 
                 // 🎯 核心改变：直接把二进制的 imageBlob 塞入 body 发送，匹配后端的 req.arrayBuffer()
                 const response = await fetch(backendUrl, {
