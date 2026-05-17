@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 智能拍照识字与越南语助手 (本地直连旗舰版)</title>
-    <script src="https://unpkg.com/pinyin-pro@3.18.3/dist/index.js"></script>
+    <title>AI 智能拍照识字与越南语助手 (安全代理生产版)</title>
+    <script src="https://registry.npmmirror.com/pinyin-pro/3.18.3/files/dist/index.js"></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -91,7 +91,6 @@
 
         .status { text-align: center; color: #64748b; font-size: 14px; margin: 12px 0; }
 
-        /* 看板外壳 */
         .board-container {
             position: relative;
             width: 100%;
@@ -100,7 +99,6 @@
         }
         .display-label { font-weight: 600; color: #334155; display: block; margin-bottom: 8px; }
         
-        /* 中文+拼音看板 */
         .karaoke-board {
             width: 100%;
             min-height: 180px;
@@ -113,7 +111,6 @@
             word-break: break-all;
         }
 
-        /* 越南语翻译看板（平时隐藏） */
         .translation-board {
             position: absolute;
             top: 0;
@@ -132,7 +129,6 @@
             overflow-y: auto;
         }
 
-        /* Ruby 拼音样式 */
         ruby {
             ruby-position: over;
             margin: 0 4px;
@@ -155,7 +151,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* 卡拉OK 高亮和小红点 */
         ruby.reading-now {
             background-color: #fef08a;
             transform: scale(1.1);
@@ -175,7 +170,6 @@
         }
         @keyframes bounce { from { bottom: -6px; } to { bottom: -10px; } }
 
-        /* 底部控制中心 */
         .controls-row {
             display: flex;
             gap: 15px;
@@ -217,7 +211,7 @@
 <body>
 
     <div class="container">
-        <h1>📸 AI 拍照识字与越南语助手 (直连极速版)</h1>
+        <h1>📸 AI 拍照识字与越南语助手 (安全代理生产版)</h1>
         
         <div class="media-controls">
             <button class="btn-secondary" onclick="document.getElementById('file-input').click()">📂 本地上传图片</button>
@@ -268,10 +262,6 @@
         let stream = null;
         let rawPureText = ""; 
         let textMapping = []; 
-
-        // 🎯 1. 在这里直接填入你的免费 Gemini API Key 
-        // （因为完全在本地跑，不再经过云端中转，可以完美绕开云端口响应错误）
-        const GEMINI_API_KEY = "AIzaSyDAeh2C_Y3kNeBFBQamAgd9amKRhCdDiFE";
 
         fileInput.addEventListener('change', (e) => {
             stopCamera();
@@ -379,63 +369,37 @@
             }
         }
 
-        // 🎯 核心改变：直接从浏览器本地网络直连 Gemini 官方端点
+        // 🎯 发送图片至 Deno 后端
         ocrBtn.addEventListener('click', async () => {
             if (!imageBlob) return;
             try {
                 ocrBtn.disabled = true;
-                ocrBtn.innerText = '⚡ 正在直连抠字中...';
-                statusText.innerText = '正越过云端，直接向谷歌 Gemini 核心请求识字与翻译...';
+                ocrBtn.innerText = '⚡ 正在发送给云端...';
+                statusText.innerText = '正在通过 Deno 安全后端代理，向谷歌大模型请求识字与翻译...';
                 resetAll();
 
-                // 把图片转为 Base64
-                const reader = new FileReader();
-                const base64Promise = new Promise((resolve) => {
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                });
-                reader.readAsDataURL(imageBlob);
-                const base64Image = await base64Promise;
+                // 🎯 替换为你的 Deno 后端真实云端路由（本地测试可用 http://localhost:8000）
+                const backendUrl = `http://localhost:8000`; 
 
-                const prompt = `你是一个多模态 OCR 兼翻译专家。请帮我提取这张图片中的所有中文文字，并将其翻译成越南语。
-你必须严格、只能返回如下格式的标准 JSON 字符串，不要包含任何 \`\`\` 标记，不要有解释：
-{
-  "text": "提取出的中文纯文本内容",
-  "translation": "对应的越南语翻译内容"
-}`;
-
-                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-                const response = await fetch(geminiUrl, {
+                // 🎯 核心改变：直接把二进制的 imageBlob 塞入 body 发送，匹配后端的 req.arrayBuffer()
+                const response = await fetch(backendUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                          parts: [
-                            { text: prompt },
-                            { inlineData: { mimeType: "image/jpeg", data: base64Image } }
-                          ]
-                        }]
-                    })
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: imageBlob 
                 });
 
                 if (!response.ok) {
-                    const errText = await response.text();
-                    throw new Error(`谷歌拒绝了请求: ${errText}`);
+                    const errData = await response.json();
+                    throw new Error(errData.error || `服务器请求失败: ${response.status}`);
                 }
 
-                const resData = await response.json();
-                let replyText = resData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
-                
-                // 清洗 Markdown 格式防爆
-                replyText = replyText.replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/```$/, "").trim();
-                
-                const finalResult = JSON.parse(replyText);
+                const finalResult = await response.json();
 
                 if (finalResult.text) {
                     generateRubyMarkup(finalResult.text);
                     translationBoard.innerText = finalResult.translation || "暂无翻译数据";
 
-                    statusText.innerText = '🎉 直连交互打通！按住蓝色按钮查阅越南语，点击绿色卡拉OK跟读。';
+                    statusText.innerText = '🎉 识别成功！按住蓝色按钮查阅越南语，点击绿色卡拉OK跟读。';
                     speakBtn.disabled = false;
                     translateBtn.disabled = false;
                 } else {
@@ -443,15 +407,14 @@
                 }
             } catch (error) {
                 console.error('前端捕获异常:', error);
-                statusText.innerText = '❌ 直连请求失败';
-                alert('识字失败: ' + error.message + ' \n\n提示：请确认您代码第 141 行的 GEMINI_API_KEY 是否填写正确。');
+                statusText.innerText = '❌ 请求失败';
+                alert('识字失败: ' + error.message);
             } finally {
                 ocrBtn.disabled = false;
                 ocrBtn.innerText = '🔍 仅识别文字';
             }
         });
 
-        // 卡拉OK 朗读逻辑
         speakBtn.addEventListener('click', () => {
             if (!rawPureText) return;
             window.speechSynthesis.cancel(); 
@@ -480,7 +443,6 @@
             statusText.innerText = '🎤 卡拉OK跟读中...';
         });
 
-        // 按住切换翻译，松开切回中文
         function showTranslation() {
             karaokeBoard.style.display = "none";     
             translationBoard.style.display = "block"; 
