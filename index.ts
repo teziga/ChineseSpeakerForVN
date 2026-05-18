@@ -35,8 +35,8 @@ serve(async (req) => {
       throw new Error("未接收到图片数据 (image base64 is missing)")
     }
 
-    // 5. 组装请求谷歌 Gemini 官方 API 的参数
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${apiKey}`
+    // 5. 🎯 【旗舰升级】将已被谷歌废弃的 gemini-pro-vision 完美替换为全新的 gemini-2.5-flash
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
     
     const prompt = `你是一个精准的识字与翻译助手。请识别这张图片中的所有核心中文文本（忽略零碎、模糊、不重要的背景文字）。
 
@@ -60,9 +60,9 @@ serve(async (req) => {
           ]
         }
       ],
+      // 🎯 优化新版大模型参数结构，剔除旧版过时的 topK，确保纯净兼容
       generationConfig: {
         temperature: 0.2, // 降低随机性，让翻译和识字更精准
-        topK: 32,
         topP: 1,
         maxOutputTokens: 2048,
       }
