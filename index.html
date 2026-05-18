@@ -349,7 +349,9 @@
             translateBtn.disabled = true;
             rawPureText = "";
             textMapping = [];
-            window.speechSynthesis.cancel();
+            if (window.speechSynthesis && typeof window.speechSynthesis.cancel === 'function') {
+                window.speechSynthesis.cancel();
+            }
         }
 
         function generateRubyMarkup(text) {
@@ -440,7 +442,9 @@
         // 卡拉OK 朗读逻辑
         speakBtn.addEventListener('click', () => {
             if (!rawPureText) return;
-            window.speechSynthesis.cancel(); 
+            if (window.speechSynthesis && typeof window.speechSynthesis.cancel === 'function') {
+                window.speechSynthesis.cancel();
+            } 
 
             const utterance = new SpeechSynthesisUtterance(rawPureText);
             utterance.lang = 'zh-CN';
