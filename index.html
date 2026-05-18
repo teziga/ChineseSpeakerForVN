@@ -272,7 +272,7 @@
         // 🎯 严谨对齐的 Supabase 生产公网网关地址
         const backendUrl = `https://nqzqnrpdwpoxexavqgvo.supabase.co/functions/v1/process-image`;
         
-        // 🔒 写入你提供的安全公用 Supabase 官方 Anon 护照密钥（保护云端端点不被阻断）
+        // 🔒 写入你提供的安全公用 Supabase 官方 Anon 护照密钥
         const supabaseAnonKey = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xenFucnBkd3BveGV4YXZxZ3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4ODk0NDcsImV4cCI6MjA5NDQ2NTQ0N30.WekEdgX2T0Ea8SA1ot07XN5nSDumtlylHiRyf6GGwE0`;
 
         fileInput.addEventListener('change', (e) => {
@@ -383,7 +383,6 @@
             }
         }
 
-        // 🎯 安全全栈改造：安全调用带有跨域补丁的 Supabase 云端节点
         ocrBtn.addEventListener('click', async () => {
             if (!imageBlob) return;
             try {
@@ -392,7 +391,6 @@
                 statusText.innerText = '正安全穿透网关，请求新加坡 Supabase 边缘节点解析图片...';
                 resetAll();
 
-                // 把图片转为 Base64
                 const reader = new FileReader();
                 const base64Promise = new Promise((resolve) => {
                     reader.onloadend = () => resolve(reader.result.split(',')[1]);
@@ -400,7 +398,6 @@
                 reader.readAsDataURL(imageBlob);
                 const base64Image = await base64Promise;
 
-                // 统一交由带防爆盾的后端集群网关处理
                 const response = await fetch(backendUrl, {
                     method: 'POST',
                     headers: { 
@@ -439,50 +436,18 @@
             }
         });
 
-        // 卡拉OK 朗读逻辑
-        // 🎯 仅针对 Android 端语音安全机制进行极简兼容性修复
-    speakBtn.addEventListener('click', () => {
-    // 1. 提取纯净看板文字
-    const pureSpeakText = textMapping.map(node => node.textContent ? node.textContent[0] : '').join('').trim();
-    if (!pureSpeakText) return;
-
-    // 2. 针对安卓浏览器的绝对安全顺序：先创建实例，再做防御性释放
-    const utterance = new SpeechSynthesisUtterance(pureSpeakText);
-    utterance.lang = 'zh-CN';
-    utterance.rate = 0.85;
-
-    if (window.speechSynthesis) {
-        // 强制执行 cancel 释放安卓音频通道，但紧跟 speak 确保在同一个手势周期内
-        window.speechSynthesis.cancel();
-    }
-
-    // 3. 卡拉OK 高亮同步动效逻辑（完全保留原版）
-    utterance.onboundary = (event) => {
-        const currentIndex = event.charIndex;
-        textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
-
-        const currentNode = textMapping[currentIndex];
-        if (currentNode && currentNode.classList) {
-            currentNode.classList.add('reading-now');
-            currentNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    };
-
-    utterance.onend = () => {
-        textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
-        statusText.innerText = '🎵 朗读完毕！';
-    };
-
-    // 4. 真正触发（安卓需要这行代码作为点击事件的绝对终点）
-    window.speechSynthesis.speak(utterance);
-    statusText.innerText = '🎤 卡拉OK跟读中...';
-});
-
-            // ⚡ 极简修复：直接从已经生成的 textMapping 节点中提取纯字符，确保语音引擎读到的是百分之百的纯净文本
+        // 🎯 仅针对 Android 端语音安全机制进行极简兼容性修复的朗读逻辑
+        speakBtn.addEventListener('click', () => {
             const pureSpeakText = textMapping.map(node => node.textContent ? node.textContent[0] : '').join('').trim();
+            if (!pureSpeakText) return;
+
             const utterance = new SpeechSynthesisUtterance(pureSpeakText);
             utterance.lang = 'zh-CN';
-            utterance.rate = 0.85; 
+            utterance.rate = 0.85;
+
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
 
             utterance.onboundary = (event) => {
                 const currentIndex = event.charIndex;
