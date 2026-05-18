@@ -440,11 +440,43 @@
         });
 
         // 卡拉OK 朗读逻辑
-        speakBtn.addEventListener('click', () => {
-            if (!rawPureText) return;
-            if (window.speechSynthesis && typeof window.speechSynthesis.cancel === 'function') {
-                window.speechSynthesis.cancel();
-            } 
+        // 🎯 仅针对 Android 端语音安全机制进行极简兼容性修复
+    speakBtn.addEventListener('click', () => {
+    // 1. 提取纯净看板文字
+    const pureSpeakText = textMapping.map(node => node.textContent ? node.textContent[0] : '').join('').trim();
+    if (!pureSpeakText) return;
+
+    // 2. 针对安卓浏览器的绝对安全顺序：先创建实例，再做防御性释放
+    const utterance = new SpeechSynthesisUtterance(pureSpeakText);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.85;
+
+    if (window.speechSynthesis) {
+        // 强制执行 cancel 释放安卓音频通道，但紧跟 speak 确保在同一个手势周期内
+        window.speechSynthesis.cancel();
+    }
+
+    // 3. 卡拉OK 高亮同步动效逻辑（完全保留原版）
+    utterance.onboundary = (event) => {
+        const currentIndex = event.charIndex;
+        textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
+
+        const currentNode = textMapping[currentIndex];
+        if (currentNode && currentNode.classList) {
+            currentNode.classList.add('reading-now');
+            currentNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    };
+
+    utterance.onend = () => {
+        textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
+        statusText.innerText = '🎵 朗读完毕！';
+    };
+
+    // 4. 真正触发（安卓需要这行代码作为点击事件的绝对终点）
+    window.speechSynthesis.speak(utterance);
+    statusText.innerText = '🎤 卡拉OK跟读中...';
+});
 
             // ⚡ 极简修复：直接从已经生成的 textMapping 节点中提取纯字符，确保语音引擎读到的是百分之百的纯净文本
             const pureSpeakText = textMapping.map(node => node.textContent ? node.textContent[0] : '').join('').trim();
