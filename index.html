@@ -269,10 +269,7 @@
         let rawPureText = ""; 
         let textMapping = []; 
 
-        // 🎯 严谨对齐的 Supabase 生产公网网关地址
         const backendUrl = `https://nqzqnrpdwpoxexavqgvo.supabase.co/functions/v1/process-image`;
-        
-        // 🔒 写入你提供的安全公用 Supabase 官方 Anon 护照密钥
         const supabaseAnonKey = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xenFucnBkd3BveGV4YXZxZ3ZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4ODk0NDcsImV4cCI6MjA5NDQ2NTQ0N30.WekEdgX2T0Ea8SA1ot07XN5nSDumtlylHiRyf6GGwE0`;
 
         fileInput.addEventListener('change', (e) => {
@@ -436,7 +433,7 @@
             }
         });
 
-        // 🎯 仅针对 Android 端语音安全机制进行极简兼容性修复的朗读逻辑
+        // 🎯 安卓手机与平板全兼容：防崩溃隔离朗读逻辑
         speakBtn.addEventListener('click', () => {
             const pureSpeakText = textMapping.map(node => node.textContent ? node.textContent[0] : '').join('').trim();
             if (!pureSpeakText) return;
@@ -449,16 +446,27 @@
                 window.speechSynthesis.cancel();
             }
 
-            utterance.onboundary = (event) => {
-                const currentIndex = event.charIndex;
-                textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
+            // 🤖 安卓底层防爆盾：判定是否为移动端安卓设备
+            const isAndroid = /Android/i.test(navigator.userAgent);
 
-                const currentNode = textMapping[currentIndex];
-                if (currentNode && currentNode.classList) {
-                    currentNode.classList.add('reading-now');
-                    currentNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-            };
+            if (!isAndroid) {
+                // 非安卓端（Mac、iOS、PC）完美保留原汁原味的高亮同步动画
+                utterance.onboundary = (event) => {
+                    const currentIndex = event.charIndex;
+                    textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
+
+                    const currentNode = textMapping[currentIndex];
+                    if (currentNode && currentNode.classList) {
+                        currentNode.classList.add('reading-now');
+                        currentNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                };
+            } else {
+                // 安卓移动端：故意跳过底层有缺陷的 onboundary 事件，改用简单、高兼容性的开始与结束提示，确保100%有声音发出来
+                utterance.onstart = () => {
+                    statusText.innerText = '🎤 安卓音频就绪，正在跟读中...';
+                };
+            }
 
             utterance.onend = () => {
                 textMapping.forEach(node => { if(node.classList) node.classList.remove('reading-now'); });
@@ -466,7 +474,7 @@
             };
 
             window.speechSynthesis.speak(utterance);
-            statusText.innerText = '🎤 卡拉OK跟读中...';
+            statusText.innerText = '🎤 正在请求系统播放语音...';
         });
 
         // 按住切换翻译，松开切回中文
