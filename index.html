@@ -446,7 +446,9 @@
                 window.speechSynthesis.cancel();
             } 
 
-            const utterance = new SpeechSynthesisUtterance(rawPureText);
+            // ⚡ 极简修复：直接从已经生成的 textMapping 节点中提取纯字符，确保语音引擎读到的是百分之百的纯净文本
+            const pureSpeakText = textMapping.map(node => node.textContent ? node.textContent[0] : '').join('').trim();
+            const utterance = new SpeechSynthesisUtterance(pureSpeakText);
             utterance.lang = 'zh-CN';
             utterance.rate = 0.85; 
 
